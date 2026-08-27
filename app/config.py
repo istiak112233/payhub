@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     admin_password: str = "admin123"
@@ -12,6 +13,8 @@ class Settings(BaseSettings):
     invoice_expire_minutes: int = 30
     session_secret: str = "payhub-secret-change-me"
     db_path: str = "data/payhub.db"
+    database_url: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
