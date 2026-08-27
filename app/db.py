@@ -98,13 +98,13 @@ class _Conn:
 
 @contextmanager
 def connect():
-    import psycopg
-    from psycopg.rows import dict_row
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
 
     dsn = _dsn()
     if not dsn:
         raise RuntimeError("DATABASE_URL missing. Add your Neon connection string.")
-    raw = psycopg.connect(dsn, row_factory=dict_row)
+    raw = psycopg2.connect(dsn, cursor_factory=RealDictCursor)
     con = _Conn(raw)
     try:
         yield con
