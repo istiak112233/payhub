@@ -44,16 +44,16 @@ class _Cursor:
 
     def execute(self, sql: str, params=()):
         q = self._sql(sql)
-        if q.strip().upper().startswith("INSERT") and "RETURNING" not in q.upper():
+        upper = q.strip().upper()
+        need_id = upper.startswith("INSERT") and "RETURNING" not in upper and (
+            "INTO USERS" in upper or "INTO BOTS" in upper or "INTO WEBHOOK_LOGS" in upper
+        )
+        if need_id:
             q = q.rstrip().rstrip(";") + " RETURNING id"
-            try:
-                self._cur.execute(q, params)
-                row = self._cur.fetchone()
-                if row:
-                    self.lastrowid = row[0] if not isinstance(row, dict) else row.get("id")
-            except Exception:
-                q = self._sql(sql)
-                self._cur.execute(q, params)
+            self._cur.execute(q, params)
+            row = self._cur.fetchone()
+            if row:
+                self.lastrowid = row[0] if not isinstance(row, dict) else row.get("id")
         else:
             self._cur.execute(q, params)
         return self
@@ -369,4 +369,4 @@ def log_webhook(bot_id: int, event: str, payload: str, status_code: int) -> None
         con.execute(
             "INSERT INTO webhook_logs(bot_id,event,payload,status_code,created_at) VALUES(?,?,?,?,?)",
             (bot_id, event, payload, status_code, utcnow()),
-        )
+    )
