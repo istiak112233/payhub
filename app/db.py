@@ -93,7 +93,74 @@ def init_db() -> None:
                 status_code INTEGER,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS messages (
+                user_id INTEGER PRIMARY KEY,
+                deposit_text TEXT NOT NULL DEFAULT '',
+                success_text TEXT NOT NULL DEFAULT '',
+                fail_not_found TEXT NOT NULL DEFAULT '',
+                fail_mismatch TEXT NOT NULL DEFAULT ''
+            );
             """
+        )
+
+
+DEFAULT_DEPOSIT = """🟡 Binance Pay Deposit
+
+Pay ID: {pay_id}
+Binance Name: {binance_name}
+
+Amount: {amount} {currency}
+
+✅ Send any exact amount to the Pay ID above
+📝 Paste your Order ID below
+
+⏰ Only payments started after opening this screen and completed within {minutes} minutes will be credited.
+
+Please send your Order ID below:"""
+
+DEFAULT_SUCCESS = """✅ Success — Done
+
+Credited: {amount} {currency}
+New balance: {balance} {currency}"""
+
+DEFAULT_FAIL_NOT_FOUND = """❌ Disapproved (#{code}).
+
+Order ID: {order_id}
+
+We couldn't find that Order ID in our Binance Pay history. Make sure you copied the full ID from the receipt and that the payment completed within the 30-minute window.
+
+This order did not match our records. If you believe this is a mistake, contact support."""
+
+DEFAULT_FAIL_MISMATCH = """❌ Disapproved (#{code}).
+
+Order ID: {order_id}
+
+This order did not match our records. The paid amount is not the same as this invoice."""
+
+
+def get_messages(user_id: int) -> dict:
+    with connect() as con:
+        row = con.execute("SELECT * FROM messages WHERE user_id=?", (user_id,)).fetchone()
+    data = dict(row) if row else {}
+    return {
+        "deposit_text": data.get("deposit_text") or DEFAULT_DEPOSIT,
+        "success_text": data.get("success_text") or DEFAULT_SUCCESS,
+        "fail_not_found": data.get("fail_not_found") or DEFAULT_FAIL_NOT_FOUND,
+        "fail_mismatch": data.get("fail_mismatch") or DEFAULT_FAIL_MISMATCH,
+    }
+
+
+def save_messages(user_id: int, deposit_text: str, success_text: str, fail_not_found: str, fail_mismatch: str) -> None:
+    with connect() as con:
+        con.execute(
+            """INSERT INTO messages(user_id,deposit_text,success_text,fail_not_found,fail_mismatch)
+               VALUES(?,?,?,?,?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 deposit_text=excluded.deposit_text,
+                 success_text=excluded.success_text,
+                 fail_not_found=excluded.fail_not_found,
+                 fail_mismatch=excluded.fail_mismatch""",
+            (user_id, deposit_text, success_text, fail_not_found, fail_mismatch),
         )
 
 
@@ -229,55 +296,3 @@ def log_webhook(bot_id: int, event: str, payload: str, status_code: int) -> None
             "INSERT INTO webhook_logs(bot_id,event,payload,status_code,created_at) VALUES(?,?,?,?,?)",
             (bot_id, event, payload, status_code, utcnow()),
         )
-
-
-DEFAULT_DEPOSIT = """🟡 Binance Pay Deposit
-
-Pay ID: {pay_id}
-Binance Name: {binance_name}
-
-Amount: {amount} {currency}
-
-Please send your Order ID below:"""
-DEFAULT_SUCCESS = """✅ Success — Done
-
-Credited: {amount} {currency}
-New balance: {balance} {currency}"""
-DEFAULT_FAIL_NOT_FOUND = """❌ Disapproved (#{code}).
-
-Order ID: {order_id}
-
-We couldn't find that Order ID in our Binance Pay history."""
-DEFAULT_FAIL_MISMATCH = """❌ Disapproved (#{code}).
-
-Order ID: {order_id}
-
-This order did not match our records."""
-
-def init_messages():
-    with connect() as con:
-        con.execute("""CREATE TABLE IF NOT EXISTS messages (
-            user_id INTEGER PRIMARY KEY,
-            deposit_text TEXT NOT NULL DEFAULT '',
-            success_text TEXT NOT NULL DEFAULT '',
-            fail_not_found TEXT NOT NULL DEFAULT '',
-            fail_mismatch TEXT NOT NULL DEFAULT '')""")
-
-def get_messages(user_id):
-    init_messages()
-    with connect() as con:
-        row = con.execute("SELECT * FROM messages WHERE user_id=?", (user_id,)).fetchone()
-    data = dict(row) if row else {}
-    return {
-        "deposit_text": data.get("deposit_text") or DEFAULT_DEPOSIT,
-        "success_text": data.get("success_text") or DEFAULT_SUCCESS,
-        "fail_not_found": data.get("fail_not_found") or DEFAULT_FAIL_NOT_FOUND,
-        "fail_mismatch": data.get("fail_mismatch") or DEFAULT_FAIL_MISMATCH,
-    }
-
-def save_messages(user_id, deposit_text, success_text, fail_not_found, fail_mismatch):              init_messages()
-    with connect() as con:
-        con.execute("""INSERT INTO messages(user_id,deposit_text,success_text,fail_not_found,fail_mismatch)
-            VALUES(?,?,?,?,?)                                                                               ON CONFLICT(user_id) DO UPDATE SET
-              deposit_text=excluded.deposit_text,                                                             success_text=excluded.success_text,                                                             fail_not_found=excluded.fail_not_found,
-              fail_mismatch=excluded.fail_mismatch""",                                                      (user_id, deposit_text, success_text, fail_not_found, fail_mismatch))
