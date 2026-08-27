@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayHub Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#140f0a;--paper:#f4efe4;--card:#fffaf1;--line:#e2d4b8;
+  --gold:#c9892c;--gold2:#8a5a12;--moss:#1f4d3a;--rose:#9a2f2f;
+  --mute:#7a6b55;
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+  radial-gradient(1200px 500px at 10% -10%,#ffe7b8 0%,transparent 50%),
+  repeating-linear-gradient(0deg,transparent,transparent 27px,#e8dcc6 28px),
+  var(--paper);
+color:var(--ink);font-family:Outfit,system-ui}
+a{color:var(--gold2);text-decoration:none;font-weight:600}
+.wrap{max-width:1120px;margin:0 auto;padding:22px}
+.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:3px double var(--gold2);padding-bottom:14px}
+.brand{font-family:Fraunces,serif;font-size:42px;line-height:1;margin:0}
+.brand small{display:block;font-family:IBM Plex Mono,monospace;font-size:11px;letter-spacing:.28em;color:var(--gold2);margin-top:6px}
+.nav{font-family:IBM Plex Mono,monospace;font-size:12px}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:18px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);padding:18px 18px 16px;position:relative;
+  box-shadow:8px 8px 0 #1a140c12}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(var(--gold),var(--gold2))}
+.kicker{font-family:IBM Plex Mono,monospace;font-size:10px;letter-spacing:.2em;color:var(--gold2);text-transform:uppercase;margin:0 0 8px}
+h2{font-family:Fraunces,serif;margin:0 0 12px;font-size:26px}
+.bal{font-family:Fraunces,serif;font-size:48px;letter-spacing:-1px}
+.muted{color:var(--mute);font-size:13px}
+.bad{color:var(--rose);font-weight:600}
+input,textarea,button{width:100%;padding:11px 12px;border:1px solid #d7c7a6;background:#fff;color:var(--ink);margin:6px 0;font:15px Outfit,system-ui}
+textarea{min-height:90px;font-family:IBM Plex Mono,monospace;font-size:12px}
+button{background:var(--ink);color:#f8efd8;border:0;font-weight:700;cursor:pointer;letter-spacing:.04em}
+button:hover{background:var(--gold2)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:IBM Plex Mono,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);text-align:left;padding:8px 6px;border-bottom:2px solid var(--ink)}
+td{padding:8px 6px;border-bottom:1px dashed var(--line);vertical-align:top}
+code{font-family:IBM Plex Mono,monospace;font-size:11px;background:#efe4cc;padding:2px 5px}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.paid{background:#d7f0e2;color:var(--moss)}
+.pending{background:#ffe7b0;color:#6a4a00}
+.cancelled{background:#f3d0d0;color:var(--rose)}
+.stack{margin-top:18px}
+label.mini{display:block;font-size:12px;color:var(--mute);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="brand">PayHub<small>BINANCE SETTLEMENT LEDGER</small></p>
+      <div class="muted">{{ email }}</div>
+    </div>
+    <nav class="nav"><a href="/docs-page">API DOCS</a> · <a href="/logout">LOGOUT</a></nav>
+  </header>
+
+  <section class="grid">
+    <article class="card">
+      <p class="kicker">Treasury</p>
+      <h2>Live balance</h2>
+      {% if bal_error %}<p class="bad">{{ bal_error }}</p>{% endif %}
+      <div class="bal">{{ usdt }} <span style="font-size:18px">USDT</span></div>
+      <p class="muted">Pay ID {{ uid or 'not set' }}</p>
+      <table>
+        <tr><th>Asset</th><th>Book</th><th>Total</th></tr>
+        {% for i in items %}
+        <tr><td>{{ i.asset }}</td><td>{{ i.wallet }}</td><td>{{ '%.6f'|format(i.total) }}</td></tr>
+        {% endfor %}
+      </table>
+      <form method="get"><button>Refresh ledger</button></form>
+    </article>
+    <article class="card">
+      <p class="kicker">Custody</p>
+      <h2>Binance keys</h2>
+      <form method="post" action="/settings">
+        <label class="mini">API key</label>
+        <input name="binance_api_key" placeholder="API Key" value="{{ api_key }}">
+        <label class="mini">API secret</label>
+        <input name="binance_api_secret" type="password" placeholder="API Secret">
+        <label class="mini">Pay ID / UID</label>
+        <input name="binance_uid" placeholder="Pay ID / UID" value="{{ uid }}">
+        <label class="mini">Display name</label>
+        <input name="binance_name" placeholder="Binance Name" value="{{ bname }}">
+        <button>Save keys</button>
+      </form>
+    </article>
+  </section>
+
+  <section class="card stack">
+    <p class="kicker">Customer copy</p>
+    <h2>Telegram messages</h2>
+    <p class="muted">Placeholders: {pay_id} {binance_name} {amount} {currency} {order_id} {code} {balance} {minutes}</p>
+    <form method="post" action="/messages">
+      <label class="mini">Deposit screen</label>
+      <textarea name="deposit_text" rows="8">{{ msgs.deposit_text }}</textarea>
+      <label class="mini">Success</label>
+      <textarea name="success_text" rows="5">{{ msgs.success_text }}</textarea>
+      <label class="mini">Fail — not found</label>
+      <textarea name="fail_not_found" rows="6">{{ msgs.fail_not_found }}</textarea>
+      <label class="mini">Fail — amount mismatch</label>
+      <textarea name="fail_mismatch" rows="5">{{ msgs.fail_mismatch }}</textarea>
+      <button>Save copy</button>
+    </form>
+  </section>
+
+  <section class="card stack">
+    <p class="kicker">Issuance</p>
+    <h2>Bot keys</h2>
+    <form method="post" action="/bots" class="row">
+      <input name="name" placeholder="Bot name">
+      <input name="webhook_url" placeholder="Webhook URL (optional)">
+      <button>Issue key</button>
+    </form>
+    <table>
+      <tr><th>Name</th><th>API key</th><th>Webhook secret</th><th>URL</th></tr>
+      {% for b in bots %}
+      <tr>
+        <td>{{ b.name }}</td>
+        <td><code>{{ b.api_key }}</code></td>
+        <td><code>{{ b.webhook_secret }}</code></td>
+        <td>{{ b.webhook_url or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section class="card stack">
+    <p class="kicker">Clearing</p>
+    <h2>Invoices</h2>
+    <table>
+      <tr><th>ID</th><th>User</th><th>Amount</th><th>Status</th><th>TX</th></tr>
+      {% for i in invoices %}
+      <tr>
+        <td><code>{{ i.invoice_id }}</code></td>
+        <td>{{ i.telegram_id }}</td>
+        <td>{{ i.amount }} {{ i.currency }}</td>
+        <td><span class="pill {{ i.status|lower }}">{{ i.status }}</span></td>
+        <td>{{ i.txid or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+</div>
+</body>
+  </html>
